@@ -1,6 +1,6 @@
 /* @flow */
 import React, { useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import stripeCheckoutRedirectHTML from './stripeCheckoutRedirectHTML';
@@ -25,6 +25,7 @@ type Props = {
   onCancel: ({ [key: string]: any }) => any,
   /** Called when the Stripe checkout session webpage loads successfully */
   onLoadingComplete?: (syntheticEvent: SyntheticEvent) => any,
+  loader?: Node,
   /** Extra options */
   options?: {
     /** The loading item is set on the element with id='sc-loading' */
@@ -55,6 +56,7 @@ const StripeCheckoutWebView = (props: Props) => {
     onSuccess,
     onCancel,
     onLoadingComplete,
+    loader,
     options,
     webViewProps = {},
     renderOnComplete,
@@ -63,7 +65,9 @@ const StripeCheckoutWebView = (props: Props) => {
   const [completed, setCompleted] = useState(null);
   /** Holds wether Stripe Checkout has loaded yet */
   const [hasLoaded, setHasLoaded] = useState(false);
-
+  /** React native loader states */
+  const [isLoading, setIsLoading] = useState(true);
+  const Loader = loader ? loader : <Text>Loading...</Text>;
   /**
    * Called everytime the URL stats to load in the webview
    *
@@ -104,10 +108,12 @@ const StripeCheckoutWebView = (props: Props) => {
    * Called upon URL load complete
    */
   const _onLoadEnd = (syntheticEvent: SyntheticEvent) => {
+    setIsLoading(false)
     const { nativeEvent } = syntheticEvent;
     /** set isLoading to false once the stripe checkout page loads */
     if (!hasLoaded && nativeEvent.url.startsWith('https://checkout.stripe.com') && onLoadingComplete) {
       setHasLoaded(true);
+
       onLoadingComplete(syntheticEvent);
     }
     /** call webViewProps.onLoadStart */
@@ -127,25 +133,37 @@ const StripeCheckoutWebView = (props: Props) => {
 
   /** Render the WebView holding the Stripe checkout flow */
   return (
-    <WebView
-      /** pass baseUrl to avoid  `IntegrationError: Live Stripe.js integrations must use HTTPS.` error https://github.com/react-native-community/react-native-webview/issues/1317 */
-      baseUrl=""
-      originWhitelist={['*']}
-      {...webViewProps}
-      source={{
+    <View style={styles.flex}>
+      {isLoading && <Loader />}
+      <View style={[styles.flex, isLoading && styles.isLoading]}>
+        <WebView
+        /** pass baseUrl to avoid  `IntegrationError: Live Stripe.js integrations must use HTTPS.` error https://github.com/react-native-community/react-native-webview/issues/1317 */
+        baseUrl=""
+        originWhitelist={['*']}
+        {...webViewProps}
+        source={{
         html: stripeCheckoutRedirectHTML(
-          stripePublicKey,
-          checkoutSessionInput,
-          options,
+        stripePublicKey,
+        checkoutSessionInput,
+        options,
         ),
         // Ensure an https baseUrl is used to avoid infinite loading on production due to https://github.com/A-Tokyo/react-native-stripe-checkout-webview/issues/10
         baseUrl: 'https://stripe.com',
         ...webViewProps?.source,
-      }}
-      onLoadStart={_onLoadStart}
-      onLoadEnd={_onLoadEnd}
-    />
+        }}
+        onLoadStart={_onLoadStart}
+        onLoadEnd={_onLoadEnd}
+        />
+      </View>
+    </View>
   );
 };
-
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  isLoading: {
+    flex: 0,
+  },
+});
 export default StripeCheckoutWebView;
