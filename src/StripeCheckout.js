@@ -25,7 +25,7 @@ type Props = {
   onCancel: ({ [key: string]: any }) => any,
   /** Called when the Stripe checkout session webpage loads successfully */
   onLoadingComplete?: (syntheticEvent: SyntheticEvent) => any,
-  loader?: Node,
+  loader?: () => Node,
   /** Extra options */
   options?: {
     /** The loading item is set on the element with id='sc-loading' */
@@ -93,7 +93,7 @@ const StripeCheckoutWebView = (props: Props) => {
     }
     /** Check and handle checkout state: cancel */
     if (currentUrl.includes('sc_checkout=cancel')) {
-      setCompleted(true);
+      // setCompleted(true);
       if (onCancel) {
         onCancel(props);
       }
